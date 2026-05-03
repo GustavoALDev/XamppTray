@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+# Kill running instance if any
+pkill -f "/usr/share/xampp-tray/main.py" 2>/dev/null || true
+
+
+# Remove sudoers rules installed by postinst
+rm -f /etc/sudoers.d/xampp-tray

@@ -1,0 +1,4 @@
+#!/bin/bash
+APP_DIR="/usr/share/xampp-tray"
+export PYTHONPATH="$APP_DIR/lib:$PYTHONPATH"
+exec python3 "$APP_DIR/main.py" "$@"

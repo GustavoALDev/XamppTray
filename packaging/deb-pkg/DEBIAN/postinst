@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+APP_DIR="/usr/share/xampp-tray"
+SUDOERS_FILE="/etc/sudoers.d/xampp-tray"
+
+# Install Python dependencies into the app directory
+pip3 install --quiet --target "$APP_DIR/lib" pystray Pillow 2>/dev/null || \
+    pip3 install --quiet --target "$APP_DIR/lib" pystray Pillow
+
+# Update icon cache
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+
+# Refresh application menu so the launcher appears immediately
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+fi
+
+# Grant passwordless sudo for XAMPP commands to the sudo group.
+# Only the specific lampp binaries are whitelisted — nothing else.
+cat > "$SUDOERS_FILE" <<'EOF'
+# xampp-tray: allow sudo group members to run XAMPP commands without a password
+%sudo ALL=(root) NOPASSWD: /opt/lampp/lampp start
+%sudo ALL=(root) NOPASSWD: /opt/lampp/lampp stop
+%sudo ALL=(root) NOPASSWD: /opt/lampp/lampp restart
+%sudo ALL=(root) NOPASSWD: /opt/lampp/lampp status
+%sudo ALL=(root) NOPASSWD: /opt/lampp/manager-linux-x64.run
+%sudo ALL=(root) NOPASSWD: /opt/lampp/manager-linux.run
+EOF
+
+# sudoers files must be owned by root:root and not world-writable
+chmod 0440 "$SUDOERS_FILE"
+chown root:root "$SUDOERS_FILE"
+
+# Validate syntax — if visudo rejects the file, remove it and abort
+if ! visudo -c -f "$SUDOERS_FILE" >/dev/null 2>&1; then
+    rm -f "$SUDOERS_FILE"
+    echo "Aviso: nao foi possivel instalar regras sudoers. Os comandos XAMPP vao pedir senha." >&2
+fi
+
+echo "XAMPP Tray instalado com sucesso."
+echo "Para iniciar: xampp-tray"
+echo "O autostart esta configurado em /etc/xdg/autostart/xampp-tray.desktop"

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>xampp-tray.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>XAMPP Tray App</name>
+  <summary>Gerencie seu servidor XAMPP diretamente da bandeja do sistema</summary>
+  
+  <description>
+    <p>
+      O XAMPP Tray App é uma interface gráfica moderna, elegante e extremamente leve projetada para otimizar o fluxo de trabalho de desenvolvedores no Linux.
+    </p>
+    <p>
+      Recursos principais:
+    </p>
+    <ul>
+      <li>Controle rápido: Inicie, pare e reinicie os serviços Apache e MySQL com um único clique.</li>
+      <li>Indicadores visuais: Acompanhe o status dos servidores em tempo real através de emojis dinâmicos.</li>
+      <li>Integração nativa: Visual premium que se adapta perfeitamente ao ambiente de desktop do Zorin OS.</li>
+      <li>Segurança: Elevação de privilégios segura para execução dos comandos do sistema.</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">xampp-tray.desktop</launchable>
+  
+  <url type="homepage">https://github.com/zthanos/xamp-interface</url>
+  
+  <developer id="github.com.zthanos">
+    <name>zthanos</name>
+  </developer>
+  
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.2.3" date="2026-04-28">
+      <description>
+        <p>Esta atualização traz melhorias significativas na experiência do usuário:</p>
+        <ul>
+          <li>Novos indicadores visuais com suporte a emojis de status.</li>
+          <li>Implementação de um script de desinstalação limpa.</li>
+          <li>Suporte aprimorado para exibição de ícones em alta resolução no GNOME Software.</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <provides>
+    <binary>xampp-tray</binary>
+  </provides>
+
+  <icon type="stock">xampp-tray</icon>
+  
+  <categories>
+    <category>Development</category>
+  </categories>
+</component>

@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    echo "Limpando configuracoes e cache do xampp-tray..."
+    
+    # Remove historico/cache de todos os usuarios em /home
+    for user_dir in /home/*; do
+        if [ -d "$user_dir/.local/share/xampp-tray" ]; then
+            echo "Removendo cache em: $user_dir/.local/share/xampp-tray"
+            rm -rf "$user_dir/.local/share/xampp-tray"
+        fi
+    done
+    
+    # Remove para o usuario root
+    if [ -d "/root/.local/share/xampp-tray" ]; then
+        rm -rf "/root/.local/share/xampp-tray"
+    fi
+fi
+
+exit 0

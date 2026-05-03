@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /home/zthanos/Documentos/Projetos/xamp-interface/packaging/build-deb.sh)",
+      "Bash(chmod +x /home/zthanos/Documentos/Projetos/xamp-interface/packaging/deb-pkg/usr/local/bin/xampp-tray)"
+    ]
+  }
+}
