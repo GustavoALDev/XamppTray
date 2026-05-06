@@ -3,10 +3,52 @@ set -e
 
 APP_DIR="/usr/share/xampp-tray"
 SUDOERS_FILE="/etc/sudoers.d/xampp-tray"
+LOG_FILE="/var/log/xampp-tray-install.log"
+
+# Redireciona stdout e stderr para o log e para o terminal
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "=== Instalacao iniciada: $(date) ==="
+
+# Trap para capturar erros e informar o usuario
+trap 'echo "[ERRO] Falha na linha $LINENO. Verifique o log em $LOG_FILE para detalhes." >&2' ERR
+
+# Check if XAMPP is installed
+if [ ! -f "/opt/lampp/lampp" ]; then
+    echo "XAMPP nao encontrado em /opt/lampp. Iniciando instalacao automatica..."
+    
+    XAMPP_VER="8.2.12-0"
+    XAMPP_URL="https://downloads.sourceforge.net/project/xampp/XAMPP%20Linux/8.2.12/xampp-linux-x64-8.2.12-0-installer.run"
+    INSTALLER="/tmp/xampp-installer.run"
+
+    echo "Baixando XAMPP ${XAMPP_VER} do SourceForge..."
+    # Usamos -L para seguir redirecionamentos do SourceForge
+    if wget -L -O "$INSTALLER" "$XAMPP_URL"; then
+        chmod +x "$INSTALLER"
+        echo "Executando instalador do XAMPP (modo silencioso)..."
+        if "$INSTALLER" --mode unattended; then
+            echo "XAMPP instalado com sucesso em /opt/lampp."
+        else
+            echo "Aviso: Falha na execucao do instalador do XAMPP." >&2
+            echo "Por favor, instale o XAMPP manualmente em /opt/lampp." >&2
+        fi
+        rm -f "$INSTALLER"
+    else
+        echo "Aviso: Nao foi possivel baixar o instalador do XAMPP automaticamente." >&2
+        echo "O XAMPP Tray foi instalado, mas você precisará instalar o XAMPP manualmente." >&2
+    fi
+else
+    echo "XAMPP ja esta instalado em /opt/lampp."
+fi
 
 # Install Python dependencies into the app directory
-pip3 install --quiet --target "$APP_DIR/lib" pystray Pillow 2>/dev/null || \
-    pip3 install --quiet --target "$APP_DIR/lib" pystray Pillow
+echo "Instalando dependencias Python..."
+if ! pip3 install --quiet --target "$APP_DIR/lib" --break-system-packages pystray Pillow; then
+    if ! pip3 install --quiet --target "$APP_DIR/lib" pystray Pillow; then
+        echo "Aviso: Falha ao instalar dependencias Python via pip3." >&2
+        echo "Tente instalar manualmente: pip3 install pystray Pillow" >&2
+    fi
+fi
 
 # Update icon cache
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
@@ -43,3 +85,5 @@ fi
 echo "XAMPP Tray instalado com sucesso."
 echo "Para iniciar: xampp-tray"
 echo "O autostart esta configurado em /etc/xdg/autostart/xampp-tray.desktop"
+echo "Log de instalacao disponivel em: $LOG_FILE"
+echo "=== Instalacao concluida: $(date) ==="

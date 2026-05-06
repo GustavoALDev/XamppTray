@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gera xampp-tray_1.2.3_all.deb a partir dos arquivos do projeto.
+# Gera xampp-tray_2.1.2_all.deb a partir dos arquivos do projeto.
 # Uso: cd packaging && bash build-deb.sh
 
 set -e
@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PKG_DIR="$SCRIPT_DIR/deb-pkg"
-OUTPUT="$PROJECT_DIR/xampp-tray_1.2.3_all.deb"
+OUTPUT="$PROJECT_DIR/xampp-tray_2.1.2_all.deb"
 
 echo "Copiando arquivos da aplicacao..."
 cp "$PROJECT_DIR/main.py"          "$PKG_DIR/usr/share/xampp-tray/main.py"

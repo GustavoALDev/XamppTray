@@ -18,7 +18,7 @@ Garantir que o `xampp-tray` apareça com ícone, descrição rica e notas de ver
 - Alterar a tag `<id>` para `xampp-tray.desktop` para garantir o mapeamento correto.
 - Renomear o arquivo para `xampp-tray.desktop.metainfo.xml` (conforme padrão AppStream).
 - **Descrição Rica**: Expandir a tag `<description>` com um texto mais profissional e chamativo.
-- **Notas de Versão**: Adicionar a tag `<releases>` detalhando a versão 1.2.3:
+- **Notas de Versão**: Adicionar a tag `<releases>` detalhando a versão 2.0.0:
   - Implementação de emojis de status.
   - Script de desinstalação limpa.
 - **Ícone**: Ajustar a tag `<icon type="stock">xampp-tray</icon>`.

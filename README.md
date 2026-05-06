@@ -6,13 +6,15 @@ Interface gráfica moderna e leve para gerenciar os serviços do XAMPP (Apache e
 
 Aqui está a lista de scripts disponíveis no projeto para desenvolvimento, empacotamento e gerenciamento:
 
-### 1. Execução da Aplicação
+### 1. Execução da Aplicação (Desenvolvimento)
 
-- **`main.py`**
-  - **Descrição:** Script principal da aplicação. Inicia a interface na bandeja do sistema.
+Para rodar localmente com todas as dependências isoladas:
+
+- **`run.sh`**
+  - **Descrição:** Script que cria automaticamente um ambiente virtual (`venv`), instala as dependências e inicia o app.
   - **Como executar:**
     ```bash
-    python3 main.py
+    bash run.sh
     ```
 
 ### 2. Empacotamento
@@ -23,7 +25,7 @@ Aqui está a lista de scripts disponíveis no projeto para desenvolvimento, empa
     ```bash
     bash packaging/build-deb.sh
     ```
-  - **Resultado:** Gera o arquivo `xampp-tray_1.2.3_all.deb` no diretório raiz.
+  - **Resultado:** Gera o arquivo `xampp-tray_2.1.2_all.deb` no diretório raiz.
 
 ### 3. Instalação e Inicialização
 

@@ -1,15 +1,30 @@
 import os
+import sys
+
+VERSION = "2.1.2"
+
+# Adiciona o diretorio lib ao path se existir (para o pacote .deb)
+lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
+if os.path.exists(lib_path):
+    sys.path.insert(0, lib_path)
+
 import json
 import threading
 import subprocess
 import webbrowser
+import logging
+import time
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from PIL import Image, ImageDraw
 from pystray import Icon, Menu, MenuItem
 
 ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "xampp.png")
 HISTORY_DIR = os.path.expanduser("~/.local/share/xampp-tray")
+LOG_DIR = os.path.join(HISTORY_DIR, "logs")
+LOG_FILE = os.path.join(LOG_DIR, "xampp-tray.log")
 HISTORY_FILE = os.path.join(HISTORY_DIR, "history.json")
+CONFIG_FILE = os.path.join(HISTORY_DIR, "config.json")
 HISTORY_MAX = 20
 POLL_INTERVAL = 5  # seconds
 
@@ -17,10 +32,49 @@ POLL_INTERVAL = 5  # seconds
 _status = {"apache": "stopped", "mysql": "stopped"}
 _status_lock = threading.Lock()
 _history: list[dict] = []
+_config = {
+    "autostart_app": False,
+    "autostart_apache": False,
+    "autostart_mysql": False
+}
 _tray_icon = None
 
+def _setup_logging():
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=3)
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        ))
+        logging.basicConfig(level=logging.INFO, handlers=[handler, logging.StreamHandler(sys.stderr)])
+        
+        def _excepthook(exc_type, exc_value, exc_tb):
+            if issubclass(exc_type, KeyboardInterrupt):
+                sys.__excepthook__(exc_type, exc_value, exc_tb)
+                return
+            logging.critical("Exceção não capturada", exc_info=(exc_type, exc_value, exc_tb))
+        sys.excepthook = _excepthook
+        logging.info("--- Sistema de logging iniciado ---")
+    except Exception as e:
+        print(f"Erro ao configurar logging: {e}", file=sys.stderr)
 
-# ── Notification history ──────────────────────────────────────────────────────
+
+# ── Configuration & History ───────────────────────────────────────────────────
+
+def load_config():
+    global _config
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE) as f:
+                data = json.load(f)
+                _config.update(data)
+        except Exception:
+            pass
+
+def save_config():
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(_config, f, ensure_ascii=False, indent=2)
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -82,7 +136,9 @@ def _poll_loop():
             is_transitioning = any(s in ["starting", "stopping"] for s in _status.values())
         
         if not is_transitioning:
-            output = run_command("sudo /opt/lampp/lampp status")
+            # Para polling de status, usamos sudo mas de forma silenciosa.
+            # Se o sudo pedir senha aqui, o polling vai travar, por isso usamos -n (non-interactive)
+            output = run_command("sudo -n /opt/lampp/lampp status", silent=True)
             new_status = _parse_status(output)
             changed = False
             with _status_lock:
@@ -147,6 +203,15 @@ def _build_menu():
         MenuItem("Stop XAMPP", stop_xampp),
         MenuItem("Restart XAMPP", restart_xampp),
         Menu.SEPARATOR,
+        MenuItem("Configurações\u2003\u2003\u2003", Menu(
+            MenuItem("Iniciar com o OS", toggle_autostart_app, checked=lambda item: _config.get("autostart_app", False)),
+            Menu.SEPARATOR,
+            MenuItem("Auto-start Servidores\u2003", Menu(
+                MenuItem("Apache", toggle_autostart_service("apache"), checked=lambda item: _config.get("autostart_apache", False)),
+                MenuItem("MySQL", toggle_autostart_service("mysql"), checked=lambda item: _config.get("autostart_mysql", False)),
+            ))
+        )),
+        Menu.SEPARATOR,
         MenuItem("Status", check_status),
         MenuItem("Open Dashboard", open_dashboard),
         MenuItem("Open XAMPP GUI", open_gui),
@@ -166,11 +231,25 @@ def _rebuild_menu():
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
-def run_command(command):
+def run_command(command, silent=False):
     try:
+        # Se o comando usa sudo, tentamos rodar. Se falhar por falta de permissao (exit code 1 ou similar),
+        # e estivermos em um contexto que permite GUI, poderiamos usar pkexec.
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        # Se falhou e era um comando sudo, tenta com pkexec se nao for silencioso
+        if result.returncode != 0 and command.startswith("sudo") and not silent:
+            logging.info(f"Comando sudo falhou (code {result.returncode}), tentando pkexec...")
+            pk_cmd = command.replace("sudo", "pkexec", 1)
+            result = subprocess.run(pk_cmd, shell=True, capture_output=True, text=True)
+
+        if not silent:
+            logging.info(f"Executando: {command} (Exit Code: {result.returncode})")
+            if result.stderr:
+                logging.warning(f"Mensagem do comando: {result.stderr.strip()}")
         return result.stdout or result.stderr
     except Exception as e:
+        logging.error(f"Falha fatal ao executar {command}: {e}")
         return str(e)
 
 def start_xampp(icon, item):
@@ -183,16 +262,17 @@ def start_xampp(icon, item):
     if _tray_icon:
         _tray_icon.icon = build_icon(_status["apache"], _status["mysql"])
     
+    # Usamos sudo mas o run_command vai tentar pkexec se o sudo falhar silenciosamente
     output = run_command("sudo /opt/lampp/lampp start")
     
-    status_output = run_command("sudo /opt/lampp/lampp status")
+    status_output = run_command("sudo -n /opt/lampp/lampp status", silent=True)
     new_status = _parse_status(status_output)
     with _status_lock:
         _status.update(new_status)
     _rebuild_menu()
     if _tray_icon:
         _tray_icon.icon = build_icon(_status["apache"], _status["mysql"])
-    notify("XAMPP", output.strip() or "Sem resposta do comando.")
+    notify("XAMPP", output.strip() or "Serviços iniciados.")
 
 def stop_xampp(icon, item):
     global _status
@@ -206,14 +286,14 @@ def stop_xampp(icon, item):
     
     output = run_command("sudo /opt/lampp/lampp stop")
     
-    status_output = run_command("sudo /opt/lampp/lampp status")
+    status_output = run_command("sudo -n /opt/lampp/lampp status", silent=True)
     new_status = _parse_status(status_output)
     with _status_lock:
         _status.update(new_status)
     _rebuild_menu()
     if _tray_icon:
         _tray_icon.icon = build_icon(_status["apache"], _status["mysql"])
-    notify("XAMPP", output.strip() or "Sem resposta do comando.")
+    notify("XAMPP", output.strip() or "Serviços parados.")
 
 def restart_xampp(icon, item):
     global _status
@@ -227,17 +307,17 @@ def restart_xampp(icon, item):
     
     output = run_command("sudo /opt/lampp/lampp restart")
     
-    status_output = run_command("sudo /opt/lampp/lampp status")
+    status_output = run_command("sudo -n /opt/lampp/lampp status", silent=True)
     new_status = _parse_status(status_output)
     with _status_lock:
         _status.update(new_status)
     _rebuild_menu()
     if _tray_icon:
         _tray_icon.icon = build_icon(_status["apache"], _status["mysql"])
-    notify("XAMPP", output.strip() or "Sem resposta do comando.")
+    notify("XAMPP", output.strip() or "Serviços reiniciados.")
 
 def check_status(icon, item):
-    output = run_command("sudo /opt/lampp/lampp status")
+    output = run_command("sudo -n /opt/lampp/lampp status")
     notify("XAMPP Status", output.strip() or "Sem resposta do comando.")
 
 def open_dashboard(icon, item):
@@ -250,9 +330,57 @@ def open_gui(icon, item):
     ]
     for path in gui_paths:
         if os.path.exists(path):
-            subprocess.Popen(["sudo", path])
+            # Para o GUI, pkexec é melhor que sudo direto
+            subprocess.Popen(["pkexec", path])
             return
     notify("XAMPP", "Painel grafico do XAMPP nao encontrado em /opt/lampp/.")
+
+def toggle_autostart_app(icon, item):
+    global _config
+    _config["autostart_app"] = not _config["autostart_app"]
+    save_config()
+    
+    autostart_path = os.path.expanduser("~/.config/autostart/xampp-tray.desktop")
+    if _config["autostart_app"]:
+        os.makedirs(os.path.dirname(autostart_path), exist_ok=True)
+        # Caminhos possiveis para o arquivo desktop
+        desktop_sources = [
+            "/usr/share/applications/xampp-tray.desktop",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "xampp-tray.desktop")
+        ]
+        
+        found = False
+        for src in desktop_sources:
+            if os.path.exists(src):
+                import shutil
+                shutil.copy(src, autostart_path)
+                found = True
+                break
+        
+        if not found:
+            # Fallback manual
+            with open(autostart_path, "w") as f:
+                f.write(f"[Desktop Entry]\nType=Application\nName=XAMPP Tray\nExec=python3 {os.path.abspath(__file__)}\nIcon={ICON_PATH}\nTerminal=false\n")
+        
+        logging.info("Autostart do aplicativo ativado.")
+        notify("Configuração", "Autostart do aplicativo ativado.")
+    else:
+        if os.path.exists(autostart_path):
+            os.remove(autostart_path)
+        logging.info("Autostart do aplicativo desativado.")
+        notify("Configuração", "Autostart do aplicativo desativado.")
+    _rebuild_menu()
+
+def toggle_autostart_service(service):
+    def _toggle(icon, item):
+        global _config
+        key = f"autostart_{service}"
+        _config[key] = not _config.get(key, False)
+        save_config()
+        logging.info(f"Auto-start do {service} {'ativado' if _config[key] else 'desativado'}.")
+        notify("Configuração", f"Auto-start do {service.capitalize()} {'ativado' if _config[key] else 'desativado'}.")
+        _rebuild_menu()
+    return _toggle
 
 def quit_app(icon, item):
     icon.stop()
@@ -267,11 +395,41 @@ def setup():
         print(f"Erro: icone nao encontrado em {ICON_PATH}")
         return
 
+    _setup_logging()
+    load_config()
     _history = load_history()
 
-    # Initial status check
-    output = run_command("sudo /opt/lampp/lampp status")
+    # Initial status check - silencioso para evitar pedir senha no setup se nao estiver no sudoers
+    output = run_command("sudo -n /opt/lampp/lampp status", silent=True)
     _status.update(_parse_status(output))
+
+    # Auto-start services if configured
+    if _config.get("autostart_apache") or _config.get("autostart_mysql"):
+        def _auto_start_job():
+            # Aguarda o sistema carregar o ambiente grafico
+            time.sleep(2)
+            
+            logging.info("Iniciando auto-start dos serviços configurados...")
+            
+            # Se ambos estiverem ativos, podemos tentar 'sudo /opt/lampp/lampp start'
+            # que inicia tudo e pede senha uma vez só.
+            if _config.get("autostart_apache") and _config.get("autostart_mysql"):
+                run_command("sudo /opt/lampp/lampp start")
+            else:
+                if _config.get("autostart_apache"):
+                    run_command("sudo /opt/lampp/lampp startapache")
+                if _config.get("autostart_mysql"):
+                    run_command("sudo /opt/lampp/lampp startmysql")
+            
+            # Refresh status
+            final_status = run_command("sudo -n /opt/lampp/lampp status", silent=True)
+            with _status_lock:
+                _status.update(_parse_status(final_status))
+            if _tray_icon:
+                _tray_icon.icon = build_icon(_status["apache"], _status["mysql"])
+                _rebuild_menu()
+        
+        threading.Thread(target=_auto_start_job, daemon=True).start()
 
     image = build_icon(_status["apache"], _status["mysql"])
 

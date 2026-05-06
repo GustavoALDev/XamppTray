@@ -4,42 +4,59 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <name>XAMPP Tray App</name>
-  <summary>Gerencie seu servidor XAMPP diretamente da bandeja do sistema</summary>
+  <summary>Controle o Apache e MySQL do XAMPP diretamente da bandeja do sistema</summary>
   
   <description>
     <p>
-      O XAMPP Tray App é uma interface gráfica moderna, elegante e extremamente leve projetada para otimizar o fluxo de trabalho de desenvolvedores no Linux.
+      O XAMPP Tray App é uma ferramenta essencial para desenvolvedores web no Linux. Ele oferece uma interface minimalista e eficiente para gerenciar os serviços do XAMPP sem a necessidade de abrir o terminal ou painéis pesados.
     </p>
-    <p>
-      Recursos principais:
-    </p>
+    <p>Funcionalidades em destaque:</p>
     <ul>
-      <li>Controle rápido: Inicie, pare e reinicie os serviços Apache e MySQL com um único clique.</li>
-      <li>Indicadores visuais: Acompanhe o status dos servidores em tempo real através de emojis dinâmicos.</li>
-      <li>Integração nativa: Visual premium que se adapta perfeitamente ao ambiente de desktop do Zorin OS.</li>
-      <li>Segurança: Elevação de privilégios segura para execução dos comandos do sistema.</li>
+      <li>Controle Total: Inicie, pare e reinicie o Apache e MySQL com um clique.</li>
+      <li>Status em Tempo Real: Ícones coloridos e dinâmicos indicam o estado de cada serviço.</li>
+      <li>Automação v2.0: Configure o aplicativo e seus servidores para iniciarem automaticamente com o sistema.</li>
+      <li>Histórico de Notificações: Acompanhe logs de execução e erros de forma organizada.</li>
+      <li>Segurança Integrada: Utiliza pkexec para elevação segura de privilégios.</li>
     </ul>
   </description>
 
   <launchable type="desktop-id">xampp-tray.desktop</launchable>
   
   <url type="homepage">https://github.com/zthanos/xamp-interface</url>
+  <url type="bugtracker">https://github.com/zthanos/xamp-interface/issues</url>
   
   <developer id="github.com.zthanos">
-    <name>zthanos</name>
+    <name>Gustavo AL Dev (zthanos)</name>
   </developer>
   
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2.1.2" date="2026-05-05">
+      <description>
+        <p>A versão 2.1.2 traz melhorias na estabilidade do autostart e tratamento de permissões:</p>
+        <ul>
+          <li>Implementação de fallback para pkexec no autostart dos serviços.</li>
+          <li>Melhoria no monitoramento de status com polling não-interativo.</li>
+          <li>Correção no carregamento e persistência das configurações de autostart.</li>
+          <li>Adição de logs rotativos para melhor diagnóstico de problemas.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-05-03">
+      <description>
+        <p>A versão 2.0.0 introduz recursos avançados de automação:</p>
+        <ul>
+          <li>Autostart do aplicativo com a sessão do usuário.</li>
+          <li>Autostart individual para Apache e MySQL.</li>
+          <li>Persistência de configurações em JSON.</li>
+          <li>Sistema de histórico de ações e notificações nativas.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.3" date="2026-04-28">
       <description>
-        <p>Esta atualização traz melhorias significativas na experiência do usuário:</p>
-        <ul>
-          <li>Novos indicadores visuais com suporte a emojis de status.</li>
-          <li>Implementação de um script de desinstalação limpa.</li>
-          <li>Suporte aprimorado para exibição de ícones em alta resolução no GNOME Software.</li>
-        </ul>
+        <p>Melhorias na interface e indicadores visuais.</p>
       </description>
     </release>
   </releases>
@@ -52,5 +69,13 @@
   
   <categories>
     <category>Development</category>
+    <category>WebDevelopment</category>
   </categories>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Menu principal do XAMPP Tray com indicadores de status</caption>
+      <image>https://raw.githubusercontent.com/zthanos/xamp-interface/main/assets/xampp.png</image>
+    </screenshot>
+  </screenshots>
 </component>
