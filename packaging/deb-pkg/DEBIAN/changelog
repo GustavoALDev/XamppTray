@@ -1,0 +1,22 @@
+xampp-tray (2.1.2) stable; urgency=medium
+
+  * Refactored to modular Python package structure (src/xampp_tray/)
+  * Added type annotations and pytest test suite
+  * Replaced shell=True subprocess calls with explicit argument lists
+  * Removed automatic XAMPP download from postinst
+  * Fixed Architecture from all to amd64 (bundled Pillow native libs)
+
+ -- Gustavo Alves Leite <manusteste5555@gmail.com>  Thu, 08 May 2026 00:00:00 +0000
+
+xampp-tray (2.0.0) stable; urgency=medium
+
+  * Added persistent configuration and logging system
+  * Added pkexec support for XAMPP operations
+
+ -- Gustavo Alves Leite <manusteste5555@gmail.com>  Mon, 01 Jan 2024 00:00:00 +0000
+
+xampp-tray (1.2.3) stable; urgency=low
+
+  * Initial packaged release
+
+ -- Gustavo Alves Leite <manusteste5555@gmail.com>  Mon, 01 Jan 2023 00:00:00 +0000

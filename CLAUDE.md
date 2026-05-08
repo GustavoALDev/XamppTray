@@ -4,40 +4,70 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este projeto
 
-Aplicativo de bandeja do sistema (system tray) para Linux que permite controlar o XAMPP via menu de contexto, sem precisar abrir terminal. Escrito em Python puro, arquivo único.
+Aplicativo de bandeja do sistema (system tray) para Linux que permite controlar o XAMPP via menu de contexto, sem precisar abrir terminal. Distribuído como pacote `.deb` e executável como pacote Python instalável.
 
 ## Comandos essenciais
 
 ```bash
-# Instalar dependências no virtualenv
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Instalar em modo desenvolvimento (com deps de teste)
+pip install -e ".[dev]"
 
-# Executar o app
-python3 main.py
+# Executar o app a partir do source (sem instalar)
+bash run.sh
+# ou:
+PYTHONPATH=src python3 -m xampp_tray
 
-# Instalar como autostart no GNOME
-cp xampp-tray.desktop ~/.config/autostart/
+# Rodar testes
+PYTHONPATH=src python3 -m pytest
+
+# Type check
+mypy src/
+
+# Lint
+ruff check src/ tests/
+
+# Instalar autostart manualmente (source install)
+bash install-autostart.sh
+
+# Build do pacote .deb
+cd packaging && bash build-deb.sh
 ```
 
-O XAMPP precisa estar instalado em `/opt/lampp/`. Os comandos `lampp start/stop/restart/status` exigem `sudo` — o sistema precisa estar configurado com `sudoers` para permitir execução sem senha, ou o usuário será solicitado a digitar a senha via terminal.
+O XAMPP precisa estar instalado em `/opt/lampp/`. Os comandos `lampp` exigem `sudo` — o `postinst` do .deb cria entradas no sudoers automaticamente. Em desenvolvimento, configure o sudoers manualmente ou use `pkexec`.
 
 ## Arquitetura
 
-Todo o código da aplicação está em `main.py`. O fluxo é:
+O código da aplicação está em `src/xampp_tray/`. Cada módulo tem responsabilidade única:
 
-1. `setup()` carrega o ícone (`assets/xampp.png`) e monta o menu via `pystray`
-2. Cada item do menu chama `run_command()` que executa subprocessos do `lampp`
-3. `notify()` usa `notify-send` para exibir notificações no desktop com o output dos comandos
+| Módulo | Responsabilidade |
+|--------|-----------------|
+| `app.py` | Classe `TrayApp` — orquestra todos os módulos |
+| `service.py` | Classe `XamppService` — executa comandos lampp via subprocess |
+| `status.py` | Classe `StatusPoller` — thread de polling com callback `on_change` |
+| `config.py` | Classe `ConfigManager` — load/save de `~/.local/share/xampp-tray/config.json` |
+| `history.py` | Classe `HistoryManager` — load/save do histórico de notificações |
+| `icon.py` | Funções puras de geração de ícone com dots de status |
+| `menu.py` | Função `build_menu()` — recebe estado explícito por parâmetro |
+| `notifications.py` | Wrapper para `notify-send` |
+| `constants.py` | Constantes globais e resolução de paths |
+| `__main__.py` | Entry point: `python -m xampp_tray` |
 
-Não há estado persistente, banco de dados, configuração externa nem módulos adicionais.
+`main.py` na raiz é apenas um wrapper de compatibilidade para o pacote `.deb`.
 
 ## Dependências
 
 - `pystray` — integração com a bandeja do sistema
-- `Pillow` — carregamento do ícone PNG
+- `Pillow` — carregamento e manipulação do ícone PNG
+
+## Testes
+
+```bash
+PYTHONPATH=src python3 -m pytest          # todos os testes
+PYTHONPATH=src python3 -m pytest -k svc   # filtrar por nome
+```
+
+Testes não precisam de display X nem do XAMPP instalado. O `XamppService` é mockado com `unittest.mock.patch`.
 
 ## Toolkit de agentes (`.agent/`)
 
-O diretório `.agent/` contém o **Antigravity Kit** — um sistema de agentes, skills e workflows para IA. Ele **não faz parte da aplicação** e não é executado como código Python normal. É usado apenas como contexto para assistentes de IA.
+O diretório `.agent/` contém o **Antigravity Kit** — sistema de agentes e skills para IA. Não faz parte da aplicação e não deve ser modificado.

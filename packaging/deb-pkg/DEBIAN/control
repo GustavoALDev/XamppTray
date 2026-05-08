@@ -2,10 +2,13 @@ Package: xampp-tray
 Version: 2.1.2
 Section: utils
 Priority: optional
-Architecture: all
-Depends: python3 (>= 3.8), python3-pip, libnotify-bin, wget, net-tools, gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1
-Maintainer: XAMPP Tray App
+Architecture: amd64
+Depends: python3 (>= 3.10), libnotify-bin, net-tools, gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1
+Recommends: xampp
+Maintainer: Gustavo Alves Leite <manusteste5555@gmail.com>
 Description: System tray app to control XAMPP on Linux
  Provides a system tray icon with green/red status indicators for Apache
  and MySQL, notification history, and one-click start/stop/restart of
  XAMPP services. Compatible with GNOME and Zorin OS.
+ .
+ Requires XAMPP to be installed at /opt/lampp.
